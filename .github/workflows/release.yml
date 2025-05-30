@@ -1,0 +1,41 @@
+name: Release NuGet Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (2022074261)'
+        required: true
+
+jobs:
+  build-pack-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Pack NuGet package
+        run: dotnet pack Bank/Bank.Domain/Bank.Domain.csproj --configuration Release --no-build -p:PackageVersion=${{ github.event.inputs.version }}
+
+      - name: Publish NuGet package to GitHub Packages
+        run: dotnet nuget push Bank/Bank.Domain/bin/Release/*.nupkg --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Release v${{ github.event.inputs.version }}
+          files: |
+            Bank/Bank.Domain/bin/Release/*.nupkg
