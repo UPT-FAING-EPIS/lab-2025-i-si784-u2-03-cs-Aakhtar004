@@ -20,13 +20,13 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore Bank/Bank.sln
 
       - name: Build solution
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build Bank/Bank.sln --no-restore --configuration Release
 
       - name: Run tests and collect coverage
-        run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage"
+        run: dotnet test Bank/Bank.Domain.Tests/Bank.Domain.Tests.csproj --no-build --configuration Release --collect:"XPlat Code Coverage"
 
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
