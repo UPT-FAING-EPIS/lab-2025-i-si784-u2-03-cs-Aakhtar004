@@ -3,6 +3,7 @@ env:
   DOTNET_VERSION: '8.0' 
   DOTNET_VERSION_TOOL: '6.0' 
 on: push
+
 jobs:
   build-and-deploy-docs:
     runs-on: ubuntu-latest
@@ -127,14 +128,10 @@ jobs:
         docfx metadata docfx.json
         docfx build
 
-    - name: Disable Jekyll processing
-      run: |
-        touch _site/.nojekyll
-
     - name: Publicar en GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: Bank/_site
         publish_branch: gh-pages
+        destination_dir: docs
         keep_files: false
