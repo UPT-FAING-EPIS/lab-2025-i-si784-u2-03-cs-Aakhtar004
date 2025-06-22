@@ -1,5 +1,9 @@
 name: 4. Release NuGet Package
 
+permissions:
+  contents: write
+  packages: write
+
 env:
   DOTNET_VERSION: '8.0'
 
