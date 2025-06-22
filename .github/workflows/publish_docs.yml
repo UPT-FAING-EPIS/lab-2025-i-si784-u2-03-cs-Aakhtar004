@@ -1,8 +1,11 @@
-name: 2. Publish Documentation 
+name: 2. Publish Documentation
 env:
-  DOTNET_VERSION: '8.0' 
-  DOTNET_VERSION_TOOL: '6.0' 
-on: push
+  DOTNET_VERSION: '8.0'
+  DOTNET_VERSION_TOOL: '6.0'
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   build-and-deploy-docs:
@@ -21,35 +24,29 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION_TOOL }}
-    - name: Actualizar DocFx y dll2mmd  
+    - name: Actualizar DocFx y dll2mmd
       run: |
         dotnet tool update -g docfx
         dotnet tool update -g dll2mmd
-
     - name: Restore & Build project
       run: |
         dotnet restore Bank.Domain/Bank.Domain.csproj
         dotnet build Bank.Domain/Bank.Domain.csproj --configuration Release
-
     - name: Generar diagrama de clases con dll2mmd
       run: |
         dll2mmd -f Bank.Domain/bin/Release/net8.0/Bank.Domain.dll -o disenio.md
-    
     - name: Generate coverage Report
       run: |
         dotnet test --collect:"XPlat Code Coverage"
         dotnet tool install -g dotnet-reportgenerator-globaltool
         reportgenerator "-reports:./*/*/*/coverage.cobertura.xml" "-targetdir:Cobertura" -reporttypes:MarkdownSummaryGithub
-    
     - name: Inicializar DocFX
       run: |
-          docfx init -y
-   
-    - name: Limpiar el directorio docs
+        docfx init -y
+    - name: Limpiar el directorio _site
       run: |
-          rm -rf docs/*
-    
-    - name: Modificar archivo docfx.json
+        rm -rf _site/*
+    - name: Modificar archivo docfx.json para que la salida de metadatos sea en 'docs' y la construcción en '_site'
       run: |
         cat > docfx.json <<EOF
         {
@@ -64,7 +61,7 @@ jobs:
                   ]
                 }
               ],
-              "dest": "docs"
+              "dest": "_api"
             }
           ],
           "build": {
@@ -122,20 +119,22 @@ jobs:
 
         ## [Pruebas Markdown](Cobertura/SummaryGithub.md)
         EOF
-
-    - name: Generar documentación
+    - name: Generar documentación (DocFx)
       run: |
         docfx metadata docfx.json
         docfx build
-        
-    - name: Disable Jekyll processing
+    - name: Preparar directorio para publicación
       run: |
-        touch docs/.nojekyll
-
+        mkdir -p ./.github_pages_docs_staging/docs
+        mv _site/* ./.github_pages_docs_staging/docs/
+        mv disenio.md ./.github_pages_docs_staging/docs/
+        mv Cobertura/ ./.github_pages_docs_staging/docs/
+        touch ./.github_pages_docs_staging/docs/.nojekyll
+        ls -R ./.github_pages_docs_staging/
     - name: Publicar en GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_branch: gh-pages
-        destination_dir: docs
+        publish_dir: ./.github_pages_docs_staging/
         keep_files: false
