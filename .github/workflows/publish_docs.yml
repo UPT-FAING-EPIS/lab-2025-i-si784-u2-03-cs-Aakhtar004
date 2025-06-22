@@ -2,11 +2,7 @@ name: 2. Publish Documentation
 env:
   DOTNET_VERSION: '8.0'
   DOTNET_VERSION_TOOL: '6.0'
-on:
-  push:
-    branches:
-      - main
-
+on: push
 jobs:
   build-and-deploy-docs:
     runs-on: ubuntu-latest
@@ -14,39 +10,49 @@ jobs:
       run:
         working-directory: Bank
     steps:
+    
     - name: Checkout
       uses: actions/checkout@v4
+    
     - name: Configurando la versión de NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+    
     - name: Compatibilidad con .NET 6
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION_TOOL }}
-    - name: Actualizar DocFx y dll2mmd
+    
+    - name: Actualizar DocFx y dll2mmd  
       run: |
         dotnet tool update -g docfx
         dotnet tool update -g dll2mmd
+
     - name: Restore & Build project
       run: |
         dotnet restore Bank.Domain/Bank.Domain.csproj
         dotnet build Bank.Domain/Bank.Domain.csproj --configuration Release
+    
     - name: Generar diagrama de clases con dll2mmd
       run: |
         dll2mmd -f Bank.Domain/bin/Release/net8.0/Bank.Domain.dll -o disenio.md
+    
     - name: Generate coverage Report
       run: |
         dotnet test --collect:"XPlat Code Coverage"
         dotnet tool install -g dotnet-reportgenerator-globaltool
         reportgenerator "-reports:./*/*/*/coverage.cobertura.xml" "-targetdir:Cobertura" -reporttypes:MarkdownSummaryGithub
+    
     - name: Inicializar DocFX
       run: |
-        docfx init -y
-    - name: Limpiar el directorio _site
+          docfx init -y
+    
+    - name: Limpiar el directorio docs
       run: |
-        rm -rf _site/*
-    - name: Modificar archivo docfx.json para que la salida de metadatos sea en 'docs' y la construcción en '_site'
+          rm -rf docs/*
+
+    - name: Modificar archivo docfx.json
       run: |
         cat > docfx.json <<EOF
         {
@@ -61,7 +67,7 @@ jobs:
                   ]
                 }
               ],
-              "dest": "_api"
+              "dest": "docs"
             }
           ],
           "build": {
@@ -71,7 +77,8 @@ jobs:
                   "**/*.{md,yml}"
                 ],
                 "exclude": [
-                  "_site/**"
+                  "_site/**",
+                  "Cobertura/index.html"
                 ]
               }
             ],
@@ -98,12 +105,14 @@ jobs:
         EOF
     - name: VER JSON
       run: cat docfx.json
+
     - name: Modificar archivo toc.yml
       run: |
         cat > toc.yml <<EOF
         - name: Docs
           href: docs/
         EOF
+
     - name: Modificar archivo index.md
       run: |
         cat > index.md <<EOF
@@ -113,28 +122,21 @@ jobs:
 
         # This is the **HOMEPAGE**.
 
-        ## [Pruebas de Cobertura](Cobertura/index.html)
+        ## [Pruebas HTML](Cobertura/index.html)
 
         ## [Diagrama de Clases](disenio.md)
 
         ## [Pruebas Markdown](Cobertura/SummaryGithub.md)
         EOF
-    - name: Generar documentación (DocFx)
+
+    - name: Generar documentación
       run: |
         docfx metadata docfx.json
         docfx build
-    - name: Preparar directorio para publicación
-      run: |
-        mkdir -p ./.github_pages_docs_staging/docs
-        mv _site/* ./.github_pages_docs_staging/docs/
-        mv disenio.md ./.github_pages_docs_staging/docs/
-        mv Cobertura/ ./.github_pages_docs_staging/docs/
-        touch ./.github_pages_docs_staging/docs/.nojekyll
-        ls -R ./.github_pages_docs_staging/
+
     - name: Publicar en GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_branch: gh-pages
-        publish_dir: ./.github_pages_docs_staging/
-        keep_files: false
+        publish_dir: Bank/_site
+        keep_files: true
