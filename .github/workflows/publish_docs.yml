@@ -126,7 +126,11 @@ jobs:
       run: |
         docfx metadata docfx.json
         docfx build
-        
+
+    - name: Disable Jekyll processing
+      run: |
+        touch docs/.nojekyll
+
     - name: Publicar en GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
