@@ -2,7 +2,7 @@
   "Cobertura/SummaryGithub.html": {
     "href": "Cobertura/SummaryGithub.html",
     "title": "Summary | Bank App",
-    "summary": "Summary Summary Generated on: 06/22/2025 - 19:36:40 Coverage date: 06/22/2025 - 19:36:38 Parser: Cobertura Assemblies: 1 Classes: 1 Files: 1 Line coverage: 94.7% (18 of 19) Covered lines: 18 Uncovered lines: 1 Coverable lines: 19 Total lines: 44 Branch coverage: 100% (6 of 6) Covered branches: 6 Total branches: 6 Method coverage: Feature is only available for sponsors Coverage Bank.Domain - 94.7% Name Line Branch Bank.Domain 94.7% 100% Bank.Domain.BankAccount 94.7% 100%"
+    "summary": "Summary Summary Generated on: 06/22/2025 - 20:16:22 Coverage date: 06/22/2025 - 20:16:21 Parser: Cobertura Assemblies: 1 Classes: 1 Files: 1 Line coverage: 94.7% (18 of 19) Covered lines: 18 Uncovered lines: 1 Coverable lines: 19 Total lines: 44 Branch coverage: 100% (6 of 6) Covered branches: 6 Total branches: 6 Method coverage: Feature is only available for sponsors Coverage Bank.Domain - 94.7% Name Line Branch Bank.Domain 94.7% 100% Bank.Domain.BankAccount 94.7% 100%"
   },
   "disenio.html": {
     "href": "disenio.html",
@@ -32,6 +32,6 @@
   "index.html": {
     "href": "index.html",
     "title": "This is the HOMEPAGE. | Bank App",
-    "summary": "This is the HOMEPAGE. Pruebas de Cobertura Diagrama de Clases Pruebas Markdown"
+    "summary": "This is the HOMEPAGE. Pruebas HTML Diagrama de Clases Pruebas Markdown"
   }
 }
