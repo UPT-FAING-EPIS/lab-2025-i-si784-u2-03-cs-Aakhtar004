@@ -1,41 +1,50 @@
-name: Release NuGet Package
+name: 4. Release NuGet Package
+env:
+  DOTNET_VERSION: '8.0'
 
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version (2022074261)'
-        required: true
+on: 
+  push:
+    branches:
+      - main
 
 jobs:
-  build-pack-publish:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '9.0.x'
-
-      - name: Restore dependencies
-        run: dotnet restore Bank/Bank.sln
-
-      - name: Build solution
-        run: dotnet build Bank/Bank.sln --configuration Release --no-restore
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+      - name: Restore dependencies && Build solution
+        run: |
+          cd Bank
+          dotnet restore
+          dotnet build --configuration Release
 
       - name: Pack NuGet package
-        run: dotnet pack Bank/Bank.Domain/Bank.Domain.csproj --configuration Release --no-build -p:PackageVersion=${{ github.event.inputs.version }}
+        run: |
+          dotnet pack Bank/Bank.Domain/Bank.Domain.csproj -c Release \
+            -p:PackageVersion=202.207.4261 \
+            -p:RepositoryUrl=https://github.com/${{ github.repository }} \
+            -p:RepositoryType=git
 
-      - name: Publish NuGet package to GitHub Packages
-        run: dotnet nuget push Bank/Bank.Domain/bin/Release/*.nupkg --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key ${{ secrets.GITHUB_TOKEN }}
+      - name: NuGet sources
+        run: dotnet nuget list source
 
+      - name: Push NuGet package to GitHub Packages
+        run: |
+          dotnet nuget push Bank/Bank.Domain/bin/Release/*.nupkg \
+          --skip-duplicate \
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+          --api-key ${{ secrets.PACKAGE_NUGET }}
+      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: Release v${{ github.event.inputs.version }}
-          files: |
-            Bank/Bank.Domain/bin/Release/*.nupkg
+          tag_name: v2022074261
+          name: v2022074261
+          files: "**/*.nupkg"

@@ -1,32 +1,136 @@
-name: Publish Documentation
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
+name: 2. Publish Documentation 
+env:
+  DOTNET_VERSION: '8.0' 
+  DOTNET_VERSION_TOOL: '6.0' 
+on: push
 jobs:
-  build-and-deploy:
+  build-and-deploy-docs:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: Bank
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Configurando la versión de NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - name: Compatibilidad con .NET 6
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION_TOOL }}
+    - name: Actualizar DocFx y dll2mmd  
+      run: |
+        dotnet tool update -g docfx
+        dotnet tool update -g dll2mmd
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
+    - name: Restore & Build project
+      run: |
+        dotnet restore Bank.Domain/Bank.Domain.csproj
+        dotnet build Bank.Domain/Bank.Domain.csproj --configuration Release
 
-      - name: Install DocFx
-        run: dotnet tool install -g docfx
+    - name: Generar diagrama de clases con dll2mmd
+      run: |
+        dll2mmd -f Bank.Domain/bin/Release/net8.0/Bank.Domain.dll -o disenio.md
+    
+    - name: Generate coverage Report
+      run: |
+        dotnet test --collect:"XPlat Code Coverage"
+        dotnet tool install -g dotnet-reportgenerator-globaltool
+        reportgenerator "-reports:./*/*/*/coverage.cobertura.xml" "-targetdir:Cobertura" -reporttypes:MarkdownSummaryGithub
+    
+    - name: Inicializar DocFX
+      run: |
+          docfx init -y
+   
+    - name: Limpiar el directorio docs
+      run: |
+          rm -rf docs/*
+    
+    - name: Modificar archivo docfx.json
+      run: |
+        cat > docfx.json <<EOF
+        {
+          "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+          "metadata": [
+            {
+              "src": [
+                {
+                  "src": ".",
+                  "files": [
+                    "**/*.csproj"
+                  ]
+                }
+              ],
+              "dest": "docs"
+            }
+          ],
+          "build": {
+            "content": [
+              {
+                "files": [
+                  "**/*.{md,yml}"
+                ],
+                "exclude": [
+                  "_site/**"
+                ]
+              }
+            ],
+            "resource": [
+              {
+                "files": [
+                  "images/**"
+                ]
+              }
+            ],
+            "output": "_site",
+            "template": [
+              "default",
+              "modern"
+            ],
+            "globalMetadata": {
+              "_appName": "Bank.App",
+              "_appTitle": "Bank App",
+              "_enableSearch": true,
+              "pdf": true
+            }
+          }
+        }
+        EOF
+    - name: VER JSON
+      run: cat docfx.json
+    - name: Modificar archivo toc.yml
+      run: |
+        cat > toc.yml <<EOF
+        - name: Docs
+          href: docs/
+        EOF
+    - name: Modificar archivo index.md
+      run: |
+        cat > index.md <<EOF
+        ---
+        _layout: landing
+        ---
 
-      - name: Generate DocFx documentation
-        run: docfx docfx.json
+        # This is the **HOMEPAGE**.
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_site
+        ## [Pruebas de Cobertura](Cobertura/index.html)
+
+        ## [Diagrama de Clases](disenio.md)
+
+        ## [Pruebas Markdown](Cobertura/SummaryGithub.md)
+        EOF
+
+    - name: Generar documentación
+      run: |
+        docfx metadata docfx.json
+        docfx build
+        
+    - name: Publicar en GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        destination_dir: docs
+        keep_files: false
